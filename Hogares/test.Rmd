@@ -1,17 +1,29 @@
 ---
-  title: "Buscando un Hogar"
+title: "Buscando un Hogar"
 author: "David Padrino"
 date: "Viernes, 12 de marzo de 2016"
 logo: logo-ucv1.gif
 widescreen: yes
 runtime: shiny
 ---
-  
-# Test data ----
+
+
+Se recreó un nuevo __Dataset__ para evitar que en las diferentes corridas se realizaran peticiones
+al servidor a través de *google_apr.R*, así, todos los datos calculados se encuentran en *hogares.csv* almacenados en unas columnas especiales.  
+Además se aclara que las columnas agregadas  _tiempo de manejo_ y _tiempo de caminata_ estan en segundos y _metros de manejo_ y _metros de caminata_ en metros, luego ambas transformadas a **horas** y **kilómetros** respectivamente.
+
+Fueron usadas las bibliotecas
+```{r}  
 library("readxl")
 library("stringr") 
-test.data <- read.csv("hogares.csv")
+```
 
+Se procede a la lectura del archivo con la data precargada
+```{r} 
+test.data <- read.csv("hogares.csv")
+```
+
+```{r, echo=FALSE}
 # test <- read_excel("hogares.xlsx")
 # test = as.data.frame(test)
 # test <- test[!is.na(test[1]),]
@@ -32,14 +44,20 @@ test.data <- read.csv("hogares.csv")
 #  location[j] <- paste(test.data$Distrito[j] , test.data$Dirección[j], sep = " ")
 #}
 # test.data["location"] <- location
+```
 
+Se utilizaron para este modelo, solo las habitaciones simples, omitiendo así las dobles.
+```{r, echo=FALSE}
 # To filter only sigle rooms
 doppia <- grep("(dop)+.", test.data$Habitaciones.Disponibles) # works
 posto <- grep("(posto)+.", test.data$Habitaciones.Disponibles) #works
 test <- test.data
 test <- test[-doppia,] #works
 test <- test[-posto,] #works
-
+```
+Además, cuando hay varias habitaciones con diferentes precios, se tomó el menor de ellos
+teniendo en cuenta que ofrecían lo mismo.
+```{r, echo=FALSE}
 # Take smaller value of the prices arrays ----
 prices <- gsub("\\D", "", test$Precio.Mensual)
 prices <- as.numeric(prices)
@@ -61,14 +79,18 @@ for(i in 1:length(prices)){
   }else{
     precios[i] <- prices[i]
   }
-  
 }
+```
+Creación de una nueva columna en base a la columna de precios preprocesada,
+Se añade al nuevo Dataset _test_, que es un subconjunto del dataset inicial, pero sin las filas
+que contenian habitaciones _dobles_ o _posto letto_.
 
+```{r}
 test['precios.numeros'] <- precios
-
+```
+```{r, echo=FALSE}
 # separate boys & girls ----
 gender <- character()
-test$Notas
 notes <- test$Notas
 # test every field have a "ragazzi/e ----
 mix <- grep("(r)+.+[ ]*/[ ]*(r)*.+", notes)
@@ -79,11 +101,16 @@ gender[index.boys] <- 1
 gender[index.girls] <- 0
 nas <- which(is.na(gender))
 gender[nas] <- 2
+```
+Creación de una nueva columna en base a la columna __notas__ que indica la disponibilidad para chicos, chicas y ambos.
+Se añade al nuevo Dataset para separar chicos (1) de chicas (0) y valores mixtos, evaluados con (2)
+
+```{r}
 test['generos'] <- gender
+```
 
-
-# extract number of features to a new column
-
+# Extraer caracteristicas de las descripciones de los inmuebles, así se realiza una clasificación pertinente
+```{r, echo= F}
 calificacion.inmueble <- integer()
 for (i in 1:nrow(test)){
   calificacion.inmueble[i] <- str_count(test$Descripción[i], ',') + str_count(test$Descripción[i], ' e ') + 1
@@ -93,8 +120,12 @@ for (i in 1:nrow(test)){
     calificacion.inmueble[i] <- calificacion.inmueble[i] + str_count(test$Precio.Mensual[i], ',') + str_count(test$Precio.Mensual[i], ' e ') + 1
   }
 }  
+```
 
+Ya una vez preprocesada se crea una nueva columna con un "puntaje" para cada fila
+```{r, echo= F}
 test["calificacion.inmueble"] <- calificacion.inmueble
+```
 
 ### Sub-DataFrame para chicos ----
 mboys <- test[test$generos == 1 | test$generos == 2, ] # mixto y chicos
@@ -106,7 +137,12 @@ plot(mboys$Tipo.de.Inmueble, mboys$precios.numeros) # 0 <- estudio, 1 <- apartam
 abline(modelo1)
 # Muestra la descripcion del modelo lineal
 summary(modelo1)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1)
+# Muestra el error estandar cometido
+resid(modelo1)
+# Muestra la predicción dad por el modelo
+fitted(modelo1)
 
 ## Modelo precios vs tiempo de manejo (convertido a horas)
 horas.manejo.chico <- mboys$tiempo.manejo/3600
@@ -117,7 +153,12 @@ plot(horas.manejo.chico, mboys$precios.numeros)
 abline(modelo1.1)
 # Muestra la descripcion del modelo lineal
 summary(modelo1.1)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1.1)
+# Muestra el error estandar cometido
+resid(modelo1.1)
+# Muestra la predicción dad por el modelo
+fitted(modelo1.1)
 
 ## Modelo precios vs metros de manejo (convertido a km)
 kms.manejo.chico <- mboys$metros.manejo/1000
@@ -128,7 +169,12 @@ plot(kms.manejo.chico, mboys$precios.numeros)
 abline(modelo1.2)
 # Muestra la descripcion del modelo lineal
 summary(modelo1.2)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1.2)
+# Muestra el error estandar cometido
+resid(modelo1.2)
+# Muestra la predicción dad por el modelo
+fitted(modelo1.2)
 
 ## Modelo precios vs tiempo de caminata (convertido a horas)
 horas.caminar.chico <- mboys$tiempo.caminata/3600
@@ -139,7 +185,12 @@ plot(horas.caminar.chico, mboys$precios.numeros)
 abline(modelo1.3)
 # Muestra la descripcion del modelo lineal
 summary(modelo1.3)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1.3)
+# Muestra el error estandar cometido
+resid(modelo1.3)
+# Muestra la predicción dad por el modelo
+fitted(modelo1.3)
 
 ## Modelo precios vs metros de caminata (convertido a km)
 kms.caminar.chico <- mboys$metros.caminata/1000
@@ -150,6 +201,12 @@ plot(kms.caminar.chico, mboys$precios.numeros)
 abline(modelo1.4)
 # Muestra la descripcion del modelo lineal
 summary(modelo1.4)
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1.4)
+# Muestra el error estandar cometido
+resid(modelo1.4)
+# Muestra la predicción dad por el modelo
+fitted(modelo1.4)
 
 ## Modelo precios vs clasificacion inmueble 
 modelo1.5 <- lm(mboys$precios.numeros ~ mboys$calificacion.inmueble)
@@ -159,6 +216,17 @@ plot(mboys$calificacion.inmueble, mboys$precios.numeros)
 abline(modelo1.5)
 # Muestra la descripcion del modelo lineal
 summary(modelo1.5)
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo1.5)
+# Muestra el error estandar cometido
+resid(modelo1.5)
+# Muestra la predicción dad por el modelo
+fitted(modelo1.5)
+
+
+
+
+
 
 
 
@@ -174,7 +242,12 @@ plot(mgirls$Tipo.de.Inmueble, mgirls$precios.numeros) # 0 <- estudio, 1 <- apart
 abline(modelo2)
 # Muestra la descripcion del modelo lineal
 summary(modelo2)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2)
+# Muestra el error estandar cometido
+resid(modelo2)
+# Muestra la predicción dad por el modelo
+fitted(modelo2)
 
 ## Modelo precios vs tiempo de manejo (convertido a horas)
 horas.manejo.chica <- mgirls$tiempo.manejo/3600
@@ -185,7 +258,12 @@ plot(horas.manejo.chica, mgirls$precios.numeros)
 abline(modelo2.1)
 # Muestra la descripcion del modelo lineal
 summary(modelo2.1)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2.1)
+# Muestra el error estandar cometido
+resid(modelo2.1)
+# Muestra la predicción dad por el modelo
+fitted(modelo2.1)
 
 ## Modelo precios vs metros de manejo (convertido a km)
 kms.manejo.chica <- mgirls$metros.manejo/1000
@@ -196,7 +274,12 @@ plot(kms.manejo.chica, mgirls$precios.numeros)
 abline(modelo2.2)
 # Muestra la descripcion del modelo lineal
 summary(modelo2.2)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2.2)
+# Muestra el error estandar cometido
+resid(modelo2.2)
+# Muestra la predicción dad por el modelo
+fitted(modelo2.2)
 
 ## Modelo precios vs tiempo de caminata (convertido a horas)
 horas.caminar.chica <- mgirls$tiempo.caminata/3600
@@ -207,7 +290,12 @@ plot(horas.caminar.chica, mgirls$precios.numeros)
 abline(modelo2.3)
 # Muestra la descripcion del modelo lineal
 summary(modelo2.3)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2.3)
+# Muestra el error estandar cometido
+resid(modelo2.3)
+# Muestra la predicción dad por el modelo
+fitted(modelo2.3)
 
 ## Modelo precios vs metros de caminata (convertido a km)
 kms.caminar.chica <- mgirls$metros.caminata/1000
@@ -218,7 +306,12 @@ plot(kms.caminar.chica, mgirls$precios.numeros)
 abline(modelo2.4)
 # Muestra la descripcion del modelo lineal
 summary(modelo2.4)
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2.4)
+# Muestra el error estandar cometido
+resid(modelo2.4)
+# Muestra la predicción dad por el modelo
+fitted(modelo2.4)
 
 ## Modelo precios vs clasificacion inmueble 
 modelo2.5 <- lm(mgirls$precios.numeros ~ mgirls$calificacion.inmueble)
@@ -228,7 +321,10 @@ plot(mgirls$calificacion.inmueble, mgirls$precios.numeros)
 abline(modelo2.5)
 # Muestra la descripcion del modelo lineal
 summary(modelo2.5)
-
-
-
+# Retorna el coeficiente de correlacion entre las dos variables de un modelo
+coef(modelo2.5)
+# Muestra el error estandar cometido
+resid(modelo2.5)
+# Muestra la predicción dad por el modelo
+fitted(modelo2.5)
 

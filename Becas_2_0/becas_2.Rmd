@@ -1,3 +1,15 @@
+---
+title: "Becas 2.0"
+author: "David Padrino"
+date: "Viernes, 12 de marzo de 2016"
+logo: logo-ucv1.gif
+widescreen: yes
+runtime: shiny
+---
+# Introducción
+Se instalan las bibliotecas necesarias, se lee el archivo de vista minable y luego se eliminan algunas columnas innecesarias para realizar los algoritmos de clasificación.
+
+```{r, echo=F}  
 source("../Hogares/google_api.R")
 install("rpart")
 install("caret")
@@ -9,7 +21,6 @@ install("dplyr")
 install("RWeka")
 
 minable <- read.csv("minable.csv", stringsAsFactors = FALSE)
-names(minable)
 
 minable$jReprobadas <- NULL
 minable$dHabitacion <- NULL
@@ -23,8 +34,9 @@ minable$rating <- NULL
 minable$grOdontologicos[grep("[a-z]", minable$grOdontologicos)] <- 0
 minable$grOdontologicos <-as.numeric(minable$grOdontologicos)
 minable$mIngreso <- as.factor(minable$mIngreso)
-
-# Preparacion de datos/ Selección de columnas
+```
+Se procede a realizar el calculo de las edades de acuerdo a la fecha de nacimiento, luego, se elimina la columna _fecha de nacimiento_ y se adjunta al Dataframe la columna _edad_.
+```{r, echo=F}  
 normalize <- function(x) {
   return ((x - min(x)) / (max(x) - min(x))) 
 }
@@ -38,13 +50,15 @@ for(i in 1:length(minable$fNacimiento)){
   edad[i] <- as.integer(maxDate-a[i]) %/% 365
 }
 minable$fNacimiento <- NULL
+
+```
+```{r}  
 minable["edad"] <- edad
-
-
-
+```
 
 # K-Vecinos
-## normalizando los elementos numéricos del Dataset
+```{r, echo=F}  
+## Normalizando los elementos numéricos del Dataset
 minable.normalizada <- as.data.frame(lapply(minable[-5], normalize))
 
 ## Creando data de entrenamiento y de prueba
@@ -58,15 +72,22 @@ minable_test_labels <- minable[131:190, 5]
 ## Generación del algoritmo K-Vecinos mas cercanos
 minable_test_predicted <- knn(train = minable.train, test = minable.test, cl = minable_train_labels, k=10)
 
-## matriz de confusión
+## Matriz de confusión
 confusion.Matrix.knn <- table(minable_test_labels, minable_test_predicted)
 
 accuracy.confusion.Matrix.knn <- sum(diag(confusion.Matrix.knn))/sum(confusion.Matrix.knn)
+```
 
+Este modelo tiene una efectividad de:
+```{r}  
+accuracy.confusion.Matrix.knn
+
+```  
 
 ##############################################################################
 
 # Árboles de Decisión
+```{r}  
 tree.training <- sample_n(minable,133)
 tree.testing <- sample_n(minable,67)
 
@@ -75,16 +96,21 @@ rpart.plot(tree)
 
 
 
-# matriz de confusion
+# matriz de confusión
 confusion.Matrix.tree <- table(tree.testing$mIngreso, predict(tree, newdata = tree.testing,type = "class"))
 
 accuracy.confusion.Matrix.tree <- sum(diag(confusion.Matrix.tree))/sum(confusion.Matrix.tree)
-
+```
+La efectividad de este modelo es:
+```{r}  
+accuracy.confusion.Matrix.tree
+``` 
 
 ##############################################################################
 
 
-# Reglas de Clasificacion
+# Reglas de Clasificación
+```{r}  
 rules = OneR(formula = mIngreso ~ ., data = tree.training)
 
 
@@ -92,5 +118,30 @@ rules = OneR(formula = mIngreso ~ ., data = tree.training)
 confusionMatrix.clasif = table(tree.testing$mIngreso, predict(rules, newdata = tree.testing,type = "class"))
 accuracy.confusion.Matrix.oneR <- sum(diag(confusionMatrix.clasif))/sum(confusionMatrix.clasif)
 
+```
 
-# Matriz de Confusión
+La efectividad de este modelo es:
+```{r}  
+accuracy.confusion.Matrix.oneR
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

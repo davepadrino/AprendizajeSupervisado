@@ -1,6 +1,6 @@
 # install.packages("readxl") ----
 library("readxl")
-library(stringr) 
+library("stringr") 
 # Preparing data ----
 tablas = read_excel("hogares.xlsx")
 data.hogar = as.data.frame(tablas)
