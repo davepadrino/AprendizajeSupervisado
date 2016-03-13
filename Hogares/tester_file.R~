@@ -1,3 +1,12 @@
+---
+  title: "Buscando un Hogar"
+author: "David Padrino"
+date: "Viernes, 12 de marzo de 2016"
+logo: logo-ucv1.gif
+widescreen: yes
+runtime: shiny
+---
+  
 # Test data ----
 library("readxl")
 library("stringr") 

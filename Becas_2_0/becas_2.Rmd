@@ -1,11 +1,13 @@
 ---
 title: "Becas 2.0"
 author: "David Padrino"
-date: "Viernes, 12 de marzo de 2016"
+date: "Viernes, 11 de marzo de 2016"
 logo: logo-ucv1.gif
 widescreen: yes
 runtime: shiny
 ---
+# Por diferencias de versiones de paquetes, es probable que haya que recargar el documento para evitar _warnings_ indeseados
+
 # Introducción
 Se instalan las bibliotecas necesarias, se lee el archivo de vista minable y luego se eliminan algunas columnas innecesarias para realizar los algoritmos de clasificación.
 
@@ -69,67 +71,160 @@ minable.test <- minable.normalizada[131:190,]
 minable_train_labels <- minable[1:130, 5]
 minable_test_labels <- minable[131:190, 5]
 
-## Generación del algoritmo K-Vecinos mas cercanos
-minable_test_predicted <- knn(train = minable.train, test = minable.test, cl = minable_train_labels, k=10)
-
-## Matriz de confusión
-confusion.Matrix.knn <- table(minable_test_labels, minable_test_predicted)
-
-accuracy.confusion.Matrix.knn <- sum(diag(confusion.Matrix.knn))/sum(confusion.Matrix.knn)
+## Generación del algoritmo K-Vecinos mas cercanos (3 modelos)
+minable_test_predicted1 <- knn(train = minable.train, test = minable.test, cl = minable_train_labels, k=8)
+minable_test_predicted2 <- knn(train = minable.train, test = minable.test, cl = minable_train_labels, k=9)
+minable_test_predicted3 <- knn(train = minable.train, test = minable.test, cl = minable_train_labels, k=13)
 ```
 
-Este modelo tiene una efectividad de:
+## Matriz de confusión y cálculos de sensitividad y especificidad
+```{r} 
+confusion.Matrix.knn1 <- table(minable_test_labels, minable_test_predicted1)
+accuracy.confusion.Matrix.knn1 <- sum(diag(confusion.Matrix.knn1))/sum(confusion.Matrix.knn1)
+# Sensitividad de matriz knn1
+confusion.Matrix.knn1[1,1]/sum(confusion.Matrix.knn1[,1])
+# Efectividad de matriz knn1
+confusion.Matrix.knn1[4,4]/sum(confusion.Matrix.knn1[,4])
+
+confusion.Matrix.knn2 <- table(minable_test_labels, minable_test_predicted2)
+accuracy.confusion.Matrix.knn2 <- sum(diag(confusion.Matrix.knn2))/sum(confusion.Matrix.knn2)
+# Sensitividad de matriz knn2
+confusion.Matrix.knn2[1,1]/sum(confusion.Matrix.knn2[,1])
+# Efectividad de matriz knn2
+confusion.Matrix.knn2[4,4]/sum(confusion.Matrix.knn2[,4])
+
+confusion.Matrix.knn3 <- table(minable_test_labels, minable_test_predicted3)
+accuracy.confusion.Matrix.knn3 <- sum(diag(confusion.Matrix.knn3))/sum(confusion.Matrix.knn3)       
+# Sensitividad de matriz knn3
+confusion.Matrix.knn3[1,1]/sum(confusion.Matrix.knn3[,1])         
+# Efectividad de matriz knn3
+confusion.Matrix.knn3[4,4]/sum(confusion.Matrix.knn3[,4])
+
+accuracy.list.knn <- c(confusion.Matrix.knn1, confusion.Matrix.knn2, confusion.Matrix.knn3)
+                                                                                                                                       
+                                                                     
+```
+
+De los modelos K-vecinos probados se tiene una efectividad de:
 ```{r}  
-accuracy.confusion.Matrix.knn
+accuracy.confusion.Matrix.knn1
+accuracy.confusion.Matrix.knn2
+accuracy.confusion.Matrix.knn3
 
 ```  
 
-##############################################################################
+
 
 # Árboles de Decisión
 ```{r}  
 tree.training <- sample_n(minable,133)
 tree.testing <- sample_n(minable,67)
 
-tree <- rpart(mIngreso ~ ., tree.training, method = "class", control = rpart.control(minsplit = 15, cp = 0.01))
-rpart.plot(tree)
+tree1 <- rpart(mIngreso ~ ., tree.training, method = "class", control = rpart.control(minsplit = 10, cp = 0.0001))
+rpart.plot(tree1)
 
+tree2 <- rpart(mIngreso ~ ., tree.training, method = "class", control = rpart.control(minsplit = 10, cp = 0.01))
+rpart.plot(tree2)
 
-
-# matriz de confusión
-confusion.Matrix.tree <- table(tree.testing$mIngreso, predict(tree, newdata = tree.testing,type = "class"))
-
-accuracy.confusion.Matrix.tree <- sum(diag(confusion.Matrix.tree))/sum(confusion.Matrix.tree)
+tree3 <- rpart(mIngreso ~ ., tree.training, method = "class", control = rpart.control(minsplit = 15, cp = 0.001))
+rpart.plot(tree3)
 ```
-La efectividad de este modelo es:
-```{r}  
-accuracy.confusion.Matrix.tree
-``` 
 
-##############################################################################
+## Matriz de confusión de los árboles generados
+```{r} 
+confusion.Matrix.tree1 <- table(tree.testing$mIngreso, predict(tree1, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.tree1 <- sum(diag(confusion.Matrix.tree1))/sum(confusion.Matrix.tree1)
+# Sensitividad de matriz tree1
+confusion.Matrix.tree1[1,1]/sum(confusion.Matrix.tree1[,1])         
+# Efectividad de matriz tree1
+confusion.Matrix.tree1[4,4]/sum(confusion.Matrix.tree1[,4])
+
+confusion.Matrix.tree2 <- table(tree.testing$mIngreso, predict(tree2, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.tree2 <- sum(diag(confusion.Matrix.tree2))/sum(confusion.Matrix.tree2)
+# Sensitividad de matriz tree2
+confusion.Matrix.tree2[1,1]/sum(confusion.Matrix.tree2[,1])         
+# Efectividad de matriz tree2
+confusion.Matrix.tree2[4,4]/sum(confusion.Matrix.tree2[,4])
+
+confusion.Matrix.tree3 <- table(tree.testing$mIngreso, predict(tree3, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.tree3 <- sum(diag(confusion.Matrix.tree3))/sum(confusion.Matrix.tree3)
+# Sensitividad de matriz tree3
+confusion.Matrix.tree3[1,1]/sum(confusion.Matrix.tree3[,1])         
+# Efectividad de matriz tree3
+confusion.Matrix.tree3[4,4]/sum(confusion.Matrix.tree3[,4])
+
+
+accuracy.list.tree <- c(confusion.Matrix.tree1, confusion.Matrix.tree2, confusion.Matrix.tree3)
+
+```
+
+De los modelos Arbol de decisión probados se tiene una efectividad de:
+```{r}  
+accuracy.confusion.Matrix.tree1
+accuracy.confusion.Matrix.tree2
+accuracy.confusion.Matrix.tree3
+
+```  
+
 
 
 # Reglas de Clasificación
+Para las reglas de clasificación no existe un valor como el _k_ en K-Vecinos o los valores _cp_, _minsplit_ o _minbucket_ de Árboles de Desición, por lo que se procede a realizar 3 modelos diferentes: 
+- **OneR**: Acrónimo de _One Rule_, es un algoritmo simple, pero preciso de clasificación, que genera una regla para cada predictor en la Data. Produce reglas ligeramente menos precisas que los algoritmos mas técnicos, pero produciendo reglas sencillas de interpretas por el ser humano.
+- **JRip**: Implementa un aprendiz de reglas proposicionales.
+- **PART**: Siglas de _Projective Adaptive Resonance Theory_ Combina la estrategia de _divide y vencerás_ con _separa y conquista_ como estrategia de aprendizaje de reglas
 ```{r}  
-rules = OneR(formula = mIngreso ~ ., data = tree.training)
+rules1 = OneR(formula = mIngreso ~ ., data = tree.training)
+
+rules2 = JRip(formula = mIngreso ~ ., data = tree.training)
+  
+rules3 = PART(formula = mIngreso ~ ., data = tree.training)   
+
+# Matriz de Confusión OneR
+confusionMatrix.OneR = table(tree.testing$mIngreso, predict(rules1, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.oneR <- sum(diag(confusionMatrix.OneR))/sum(confusionMatrix.OneR)
+# Sensitividad de matriz tree3
+confusionMatrix.OneR[1,1]/sum(confusionMatrix.OneR[,1])         
+# Efectividad de matriz tree3
+confusionMatrix.OneR[4,4]/sum(confusionMatrix.OneR[,4])
 
 
-# Matriz de Confusión
-confusionMatrix.clasif = table(tree.testing$mIngreso, predict(rules, newdata = tree.testing,type = "class"))
-accuracy.confusion.Matrix.oneR <- sum(diag(confusionMatrix.clasif))/sum(confusionMatrix.clasif)
+# Matriz de Confusión JRip
+confusionMatrix.JRip = table(tree.testing$mIngreso, predict(rules2, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.JRip <- sum(diag(confusionMatrix.JRip))/sum(confusionMatrix.JRip)
+# Sensitividad de matriz tree3
+confusionMatrix.JRip[1,1]/sum(confusionMatrix.JRip[,1])         
+# Efectividad de matriz tree3
+confusionMatrix.JRip[4,4]/sum(confusionMatrix.JRip[,4])
+
+
+# Matriz de Confusión PART
+confusionMatrix.PART = table(tree.testing$mIngreso, predict(rules3, newdata = tree.testing,type = "class"))
+accuracy.confusion.Matrix.PART <- sum(diag(confusionMatrix.PART))/sum(confusionMatrix.PART)
+# Sensitividad de matriz tree3
+confusionMatrix.PART[1,1]/sum(confusionMatrix.PART[,1])         
+# Efectividad de matriz tree3
+confusionMatrix.PART[4,4]/sum(confusionMatrix.PART[,4])
+
+accuracy.list.class <- c(confusionMatrix.OneR, confusionMatrix.JRip, confusionMatrix.PART)
 
 ```
 
-La efectividad de este modelo es:
+De los modelos de reglas de clasificación se tiene una efectividad de:
 ```{r}  
 accuracy.confusion.Matrix.oneR
+accuracy.confusion.Matrix.JRip
+accuracy.confusion.Matrix.PART
 
 ```
 
 
+# Conclusión
+La variabilidad de resultados de los modelos dependerá del porcentaje de valores que sean elegidos.
 
+Al ser una selección azarosa, puede que en algún punto muchos datos de una misma clase esten dentro de un modelo, lo cual afectaría considerablemente su calidad.
 
-
+Por cada corrida que se hace los valores cambian, independientemente de las variables utilizadas, debido a la toma de elementos aleatoriamente. 
 
 
 
